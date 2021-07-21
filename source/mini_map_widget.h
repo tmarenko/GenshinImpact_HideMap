@@ -28,10 +28,12 @@ private:
     cv::Mat customLogo;
     QLabel *miniMap = nullptr;
     QTimer *timer = nullptr;
+    QTimer *mapTimer = new QTimer(this);
     QTimer *keyboardListener = new QTimer(this);
     HHOOK keyHook{};
     bool customLogoFlag = false;
     bool inpaintLogoFlag = false;
+    bool isHidden = false;
 
     void loadLogos();
 
@@ -50,6 +52,8 @@ private slots:
     void inpaintMiniMapWithLogo();
 
     static void keyListener();
+
+    static void mapListener();
 };
 
 #endif //GENSHINIMPACTMINIMAP_MINI_MAP_WIDGET_H

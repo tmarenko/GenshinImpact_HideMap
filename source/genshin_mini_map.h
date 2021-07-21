@@ -17,6 +17,8 @@ public:
 
     int updateMs;
 
+    bool isMapOnScreen();
+
     cv::Mat getInpaintedMiniMap();
 
     cv::Mat mask;
@@ -32,6 +34,8 @@ private:
     void createMiniMapMask();
 
     void getFrame(int screenWidth, int screenHeight);
+
+    static cv::Scalar_<uint8_t> getColor(cv::Mat *image, int x, int y);
 };
 
 typedef struct {

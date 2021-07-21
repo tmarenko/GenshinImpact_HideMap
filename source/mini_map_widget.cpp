@@ -43,6 +43,10 @@ MiniMapWidget::MiniMapWidget(QWidget *parent) : QMainWindow(parent) {
     keyHook = SetWindowsHookEx(WH_KEYBOARD_LL, switchMiniMapModes, nullptr, 0);
     connect(keyboardListener, &QTimer::timeout, this, &MiniMapWidget::keyListener);
     keyboardListener->start();
+
+    mapTimer->setInterval(genshin->updateMs * 10);
+    connect(mapTimer, &QTimer::timeout, this, &MiniMapWidget::mapListener);
+    mapTimer->start();
 }
 
 void MiniMapWidget::loadLogos() {
@@ -118,7 +122,7 @@ void MiniMapWidget::stopTimer() {
         timer = nullptr;
     }
 }
-#include <iostream>
+
 void MiniMapWidget::keyListener() {
     MSG msg;
     GetMessage(&msg, nullptr, 0, 0);
@@ -126,17 +130,26 @@ void MiniMapWidget::keyListener() {
     DispatchMessageW(&msg);
 }
 
+void MiniMapWidget::mapListener() {
+    if (wThis->isHidden)
+        return;
+    if (wThis->genshin->isMapOnScreen())
+        wThis->miniMap->setHidden(false);
+    else
+        wThis->miniMap->setHidden(true);
+}
+
 LRESULT MiniMapWidget::switchMiniMapModes(int nCode, WPARAM wParam, LPARAM lParam) {
     auto key = (PKBDLLHOOKSTRUCT) lParam;
     if (wParam == WM_KEYDOWN && nCode == HC_ACTION) {
         switch (key->vkCode) {
             case 'X':
-                wThis->miniMap->setHidden(!wThis->miniMap->isHidden());
-                if (!wThis->timer && !wThis->miniMap->isHidden()){
-                    if (wThis->customLogo.empty()){
+                wThis->isHidden = !wThis->isHidden;
+                wThis->miniMap->setHidden(wThis->isHidden);
+                if (!wThis->timer && !wThis->isHidden) {
+                    if (wThis->customLogo.empty()) {
                         wThis->setMiniMapLogo();
-                    }
-                    else{
+                    } else {
                         if (wThis->customLogoFlag) {
                             wThis->setMiniMapLogo();
                         } else {

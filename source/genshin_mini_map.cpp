@@ -3,7 +3,7 @@
 #include <iostream>
 
 #define PW_RENDERFULLCONTENT 0x00000002 // Properly capture DirectComposition window content
-
+cv::Scalar_<uint8_t> escCharColor = {255, 255, 255, 0};
 
 BOOL CALLBACK EnumWindowsFunc(HWND hwnd, LPARAM lParam) {
     auto *gwi = (GenshinWindowInfo *) lParam;
@@ -85,4 +85,23 @@ cv::Mat GenshinImpactMiniMap::getInpaintedMiniMap() {
     cv::inpaint(miniMapImage, mask, miniMapImage, 0, cv::INPAINT_TELEA);
     cv::medianBlur(miniMapImage, miniMapImage, 85);
     return miniMapImage;
+}
+
+cv::Scalar_<uint8_t> GenshinImpactMiniMap::getColor(cv::Mat *image, int x, int y) {
+    cv::Scalar_<uint8_t> bgrPixel;
+    auto* pixelPtr = (uint8_t*)image->data;
+    int cn = image->channels();
+    bgrPixel.val[0] = pixelPtr[x*image->cols*cn + y*cn + 0]; // B
+    bgrPixel.val[1] = pixelPtr[x*image->cols*cn + y*cn + 1]; // G
+    bgrPixel.val[2] = pixelPtr[x*image->cols*cn + y*cn + 2]; // R
+    return bgrPixel;
+}
+
+bool GenshinImpactMiniMap::isMapOnScreen() {
+    getFrame(41, 41);
+    auto color = getColor(&frame, 40, 40);
+    if (color.val[0] == escCharColor.val[0] && color.val[1] == escCharColor.val[1] && color.val[2] == escCharColor.val[2]){
+        return true;
+    }
+    return false;
 }
