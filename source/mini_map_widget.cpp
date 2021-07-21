@@ -1,5 +1,11 @@
 #include "mini_map_widget.h"
 
+/**
+ * Merges two images, making them into one (overlaying one with another).
+ * @param src background image
+ * @param overlay image on top
+ * @param location center of overlaying
+ */
 void overlayImage(cv::Mat *src, cv::Mat *overlay, const cv::Point &location) {
     for (int y = max(location.y, 0); y < src->rows; ++y) {
         int fY = y - location.y;
@@ -24,8 +30,14 @@ void overlayImage(cv::Mat *src, cv::Mat *overlay, const cv::Point &location) {
     }
 }
 
+/**
+ * Static pointer for listeners
+ */
 MiniMapWidget *wThis = nullptr;
 
+/**
+ * Main Qt5 window
+ */
 MiniMapWidget::MiniMapWidget(QWidget *parent) : QMainWindow(parent) {
     wThis = this;
     genshin = new GenshinImpactMiniMap();
@@ -49,6 +61,10 @@ MiniMapWidget::MiniMapWidget(QWidget *parent) : QMainWindow(parent) {
     mapTimer->start();
 }
 
+/**
+ * Loads available overlays from root directory:
+ *  genshin_logo.png, genshin_transparent.png and custom_logo.png (if available)
+ */
 void MiniMapWidget::loadLogos() {
     logo = cv::imread("genshin_logo.png", cv::IMREAD_UNCHANGED);
     cv::cvtColor(logo, logo, cv::COLOR_BGRA2RGBA);
@@ -60,6 +76,9 @@ void MiniMapWidget::loadLogos() {
     }
 }
 
+/**
+ * Sets overlay widget to default overlay (genshin_logo.png)
+ */
 void MiniMapWidget::setMiniMapLogo() {
     if (!logo.empty()) {
         stopTimer();
@@ -67,6 +86,9 @@ void MiniMapWidget::setMiniMapLogo() {
     }
 }
 
+/**
+ * Sets overlay widget to custom overlay (custom_logo.png)
+ */
 void MiniMapWidget::setMiniMapCustomLogo() {
     if (!customLogo.empty()) {
         stopTimer();
@@ -74,6 +96,10 @@ void MiniMapWidget::setMiniMapCustomLogo() {
     }
 }
 
+/**
+ * Sets image to overlay widget
+ * @param image image to set
+ */
 void MiniMapWidget::setMiniMapImage(const cv::Mat &image) {
     auto pixMap = QPixmap::fromImage(
             QImage((unsigned char *) image.data, image.cols, image.rows, QImage::Format_RGBA8888));
@@ -82,6 +108,9 @@ void MiniMapWidget::setMiniMapImage(const cv::Mat &image) {
     miniMap->repaint();
 }
 
+/**
+ * Gets inpainted minimap, apply ellipse mask and set it as current overlay.
+ */
 void MiniMapWidget::inpaintMiniMap() {
     auto inpaintedMiniMap = genshin->getInpaintedMiniMap();
     cv::cvtColor(inpaintedMiniMap, inpaintedMiniMap, cv::COLOR_RGB2BGRA);
@@ -90,6 +119,9 @@ void MiniMapWidget::inpaintMiniMap() {
     setMiniMapImage(maskedMiniMap);
 }
 
+/**
+ * Creates and starts timer for continuously updating minimap overlay.
+ */
 void MiniMapWidget::inpaintMiniMapTimer() {
     stopTimer();
     timer = new QTimer(this);
@@ -98,6 +130,9 @@ void MiniMapWidget::inpaintMiniMapTimer() {
     timer->start();
 }
 
+/**
+ * Gets inpainted minimap, applies ellipse mask, applies additional overlay on top and sets it as current overlay.
+ */
 void MiniMapWidget::inpaintMiniMapWithLogo() {
     auto inpaintedMiniMap = genshin->getInpaintedMiniMap();
     cv::cvtColor(inpaintedMiniMap, inpaintedMiniMap, cv::COLOR_RGB2BGRA);
@@ -107,6 +142,10 @@ void MiniMapWidget::inpaintMiniMapWithLogo() {
     setMiniMapImage(maskedMiniMap);
 }
 
+/**
+ * Creates and starts timer for continuously updating minimap overlay with additional overlay on top:
+ *  genshin_transparent.png
+ */
 void MiniMapWidget::inpaintMiniMapWithLogoTimer() {
     stopTimer();
     timer = new QTimer(this);
@@ -115,6 +154,9 @@ void MiniMapWidget::inpaintMiniMapWithLogoTimer() {
     timer->start();
 }
 
+/**
+ * Stops and deletes timer that corresponds for overlay updating.
+ */
 void MiniMapWidget::stopTimer() {
     if (timer) {
         timer->stop();
@@ -123,6 +165,9 @@ void MiniMapWidget::stopTimer() {
     }
 }
 
+/**
+ * Static function that listens to keyboard and proceeds with keyboard events.
+ */
 void MiniMapWidget::keyListener() {
     MSG msg;
     GetMessage(&msg, nullptr, 0, 0);
@@ -130,6 +175,10 @@ void MiniMapWidget::keyListener() {
     DispatchMessageW(&msg);
 }
 
+/**
+ * Static function that captures information from Genshin Impact in order to determine whether there is minimap on screen or not.
+ * If there is no minimap hides overlay and likewise.
+ */
 void MiniMapWidget::mapListener() {
     if (wThis->isHidden)
         return;
@@ -139,6 +188,12 @@ void MiniMapWidget::mapListener() {
         wThis->miniMap->setHidden(true);
 }
 
+/**
+ * WinAPI key hook. Events for keyboard:
+ * press X to show/hide overlay
+ * press F7 to switch with static overlay
+ * press F8 to switch with dynamic overlay
+ */
 LRESULT MiniMapWidget::switchMiniMapModes(int nCode, WPARAM wParam, LPARAM lParam) {
     auto key = (PKBDLLHOOKSTRUCT) lParam;
     if (wParam == WM_KEYDOWN && nCode == HC_ACTION) {
@@ -187,6 +242,9 @@ LRESULT MiniMapWidget::switchMiniMapModes(int nCode, WPARAM wParam, LPARAM lPara
     return CallNextHookEx(nullptr, nCode, wParam, lParam);
 }
 
+/**
+ * Stops and deletes timers and unhook keyboard before closing widget.
+ */
 void MiniMapWidget::closeEvent(QCloseEvent *event) {
     stopTimer();
     keyboardListener->stop();

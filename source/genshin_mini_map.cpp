@@ -3,8 +3,13 @@
 #include <iostream>
 
 #define PW_RENDERFULLCONTENT 0x00000002 // Properly capture DirectComposition window content
-cv::Scalar_<uint8_t> escCharColor = {255, 255, 255, 0};
+cv::Scalar_<uint8_t> escCharColor = {255, 255, 255, 0}; // White color of character icon near minimap
 
+/**
+ * Enumerator for window's handlers. Finds window with given name and class then stores it.
+ * @param hwnd iterated window's handler.
+ * @param lParam GenshinWindowInfo struction to store information about found handler.
+ */
 BOOL CALLBACK EnumWindowsFunc(HWND hwnd, LPARAM lParam) {
     auto *gwi = (GenshinWindowInfo *) lParam;
     TCHAR buf[1024]{};
@@ -24,6 +29,12 @@ BOOL CALLBACK EnumWindowsFunc(HWND hwnd, LPARAM lParam) {
     return TRUE;
 }
 
+/**
+ * Class for working with Genshin Impact screen.
+ * @param windowName name of Genshin's window.
+ * @param windowClass class of Genshin's window handler.
+ * @param updateMs update time in milliseconds for capturing screen.
+ */
 GenshinImpactMiniMap::GenshinImpactMiniMap(std::string const &windowName, std::string const &windowClass,
                                            int updateMs) {
     this->updateMs = updateMs;
@@ -37,7 +48,11 @@ GenshinImpactMiniMap::GenshinImpactMiniMap(std::string const &windowName, std::s
     createMiniMapMask();
 }
 
-
+/**
+ * Gets frame from Genshin Impact using WinAPI print function.
+ * @param screenWidth width of result screen.
+ * @param screenHeight height of result screen.
+ */
 void GenshinImpactMiniMap::getFrame(int screenWidth, int screenHeight) {
     frame.create(screenHeight, screenWidth, CV_8UC4);
     BITMAPINFOHEADER bi;
@@ -69,6 +84,9 @@ void GenshinImpactMiniMap::getFrame(int screenWidth, int screenHeight) {
     cv::cvtColor(frame, frame, cv::COLOR_RGBA2RGB);
 }
 
+/**
+ * Creates ellipse mask for minimap.
+ */
 void GenshinImpactMiniMap::createMiniMapMask() {
     mask.create(height, width, CV_8UC1);
     mask = cv::Scalar(0, 0, 0);
@@ -79,6 +97,10 @@ void GenshinImpactMiniMap::createMiniMapMask() {
     mask = mask(miniMapRect);
 }
 
+/**
+ * Inpaints frame from Genshin Impact to remove minimap from the screen then blur image to remove distortion.
+ * @return inpainted and blurred image
+ */
 cv::Mat GenshinImpactMiniMap::getInpaintedMiniMap() {
     getFrame(270, 270);
     cv::Mat miniMapImage = frame(miniMapRect);
@@ -87,6 +109,9 @@ cv::Mat GenshinImpactMiniMap::getInpaintedMiniMap() {
     return miniMapImage;
 }
 
+/**
+ * Gets color from given image by given coordinates
+ */
 cv::Scalar_<uint8_t> GenshinImpactMiniMap::getColor(cv::Mat *image, int x, int y) {
     cv::Scalar_<uint8_t> bgrPixel;
     auto* pixelPtr = (uint8_t*)image->data;
@@ -97,6 +122,9 @@ cv::Scalar_<uint8_t> GenshinImpactMiniMap::getColor(cv::Mat *image, int x, int y
     return bgrPixel;
 }
 
+/**
+ * Returns info whether there is minimap on Genshin Impact screen or not.
+ */
 bool GenshinImpactMiniMap::isMapOnScreen() {
     getFrame(41, 41);
     auto color = getColor(&frame, 40, 40);
